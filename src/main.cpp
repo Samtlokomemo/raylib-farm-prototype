@@ -1,9 +1,20 @@
 #include "raylib.h"
+#include <iostream>
 
 const int TILE_SIZE = 32;
 const int MAP_WIDTH = 11, MAP_HEIGHT = 9;
 
 int playerGridX = 1, playerGridY = 1;
+
+struct Player {
+    int x, y;
+    int dirX, dirY;
+
+    float moveTimer;
+    float speed;
+
+    Color cor;
+};
 
 enum TILES {
     TERRA,
@@ -41,37 +52,52 @@ int main() {
         {1, 0, 0, 0, 1, 2, 1, 0, 0, 0, 1},
         {1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1}
     };
+
+    Player player;
+    player.x = 1;
+    player.y = 1;
+    player.cor = MAROON;
+    player.moveTimer = 0.0f;
+    player.speed = 0.15f;
+
     while (!WindowShouldClose()) {
-        int novoX = -1, novoY = -1;
+
+        if (player.moveTimer > 0) {
+            player.moveTimer -= GetFrameTime();
+        }
+
+        int moveX = 0, moveY = 0;
+        
         // INPUTS
-        if (IsKeyPressed(KEY_W)) novoY = playerGridY - 1;
-        if (IsKeyPressed(KEY_A)) novoX = playerGridX - 1;
-        if (IsKeyPressed(KEY_S)) novoY = playerGridY + 1;
-        if (IsKeyPressed(KEY_D)) novoX = playerGridX + 1;
+        if (IsKeyDown(KEY_W)) moveY = -1;
+        if (IsKeyDown(KEY_A)) moveX = -1;
+        if (IsKeyDown(KEY_S)) moveY = 1;
+        if (IsKeyDown(KEY_D)) moveX = 1;
+
+        if ((moveX != 0 || moveY != 0) && player.moveTimer <= 0) {
+            int alvoX = player.x + moveX;
+            int alvoY = player.y + moveY;
+            
+            if (alvoX >= 0 && alvoX < MAP_WIDTH && alvoY >= 0 && alvoY < MAP_HEIGHT) {
+                int idTile = map[alvoY][alvoX];
+
+                if (INFO_DOS_TILES[idTile].colisor == false) {
+                    player.x = alvoX;
+                    player.y = alvoY;
+
+                    player.moveTimer = player.speed;
+                }
+            }
+        }
 
         if (IsKeyPressed(KEY_SPACE)) {
-            int espacoAtual = map[playerGridX][playerGridY];
-            if (espacoAtual == GRAMA) {
-                espacoAtual = TERRA;
+            int& posAtual = map[player.y][player.x];
+
+            if (posAtual == GRAMA) {
+                posAtual = TERRA;
             }
-            else {
-                espacoAtual = GRAMA;
-            }
-        }
-
-        if (novoX >= 0 && novoX < MAP_WIDTH) {
-            int idDoTile = map[playerGridY][novoX];
-
-            if (INFO_DOS_TILES[idDoTile].colisor == false) {
-                playerGridX = novoX;
-            }
-        }
-
-        if (novoY >= 0 && novoY < MAP_HEIGHT) {
-            int idDoTile = map[novoY][playerGridX];
-
-            if (INFO_DOS_TILES[idDoTile].colisor == false) {
-                playerGridY = novoY;
+            else if (posAtual == TERRA) {
+                posAtual = GRAMA;
             }
         }
 
@@ -91,7 +117,7 @@ int main() {
                     DrawRectangle(posX, posY, TILE_SIZE, TILE_SIZE, corTile);
                     DrawRectangleLines(posX, posY, TILE_SIZE, TILE_SIZE, DARKGRAY);
 
-                    DrawRectangle(playerGridX * TILE_SIZE, playerGridY * TILE_SIZE, TILE_SIZE, TILE_SIZE, MAROON);
+                    DrawRectangle(player.x * TILE_SIZE, player.y * TILE_SIZE, TILE_SIZE, TILE_SIZE, player.cor);
                 }
             }
         EndDrawing();
