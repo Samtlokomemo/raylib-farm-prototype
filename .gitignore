@@ -1,0 +1,30 @@
+# --- Arquivos de Build do CMake ---
+build/
+out/
+cmake-build-debug/
+CMakeCache.txt
+CMakeFiles/
+*.cmake
+!CMakeLists.txt
+
+# --- Visual Studio ---
+.vs/
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.user
+*.suo
+*.sdf
+*.opensdf
+
+# --- Executáveis e Binários ---
+*.exe
+*.dll
+*.lib
+*.pdb
+*.a
+bin/
+
+# --- Sistema Operacional ---
+.DS_Store
+Thumbs.db
