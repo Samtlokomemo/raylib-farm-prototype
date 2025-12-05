@@ -19,7 +19,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(raylib)
 
 # 3. Definir o executável
-add_executable(${PROJECT_NAME} main.cpp)
+add_executable(${PROJECT_NAME} "src/main.cpp" "src/World/tilemap.cpp" "src/World/tilemap.h")
 
 # 4. Linkar a Raylib ao seu executável
 target_link_libraries(${PROJECT_NAME} PRIVATE raylib)
