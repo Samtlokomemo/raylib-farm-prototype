@@ -19,10 +19,10 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(raylib)
 
 # 3. Definir o executável
-add_executable(${PROJECT_NAME} "src/main.cpp" "src/World/tilemap.cpp" "src/World/tilemap.h")
+add_executable(${PROJECT_NAME} "src/main.cpp"   "src/Globals.h" "src/Player.h")
 
 # 4. Linkar a Raylib ao seu executável
 target_link_libraries(${PROJECT_NAME} PRIVATE raylib)
 
 # (Opcional) Copiar assets para a pasta de build, se você tiver uma pasta 'resources'
-# file(COPY resources DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY assets DESTINATION ${CMAKE_CURRENT_BINARY_DIR})

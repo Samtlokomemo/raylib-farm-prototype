@@ -1,71 +1,8 @@
 #include "raylib.h"
+#include "Globals.h"
+#include "Player.h"
+
 #include <iostream>
-
-const int TILE_SIZE = 48;
-const int MAP_WIDTH = 11, MAP_HEIGHT = 9;
-
-// Itens do jogador
-enum ItemType {
-    MAO,
-    ENXADA,
-    REGADOR,
-    SEMENTE_MILHO
-};
-
-// CAMADA 0 = TILESET
-struct tileInfo{
-    bool colisor;
-    Color cor;
-};
-
-enum TILES {
-    TERRA,
-    GRAMA,
-    AGUA,
-    TERRA_MOLHADA,
-
-    TILE_COUNT
-};
-
-const tileInfo INFO_DOS_TILES[]{
-    {false, BROWN},
-    {false, GREEN},
-    {true, DARKBLUE},
-    {false, DARKBROWN}
-};
-
-// CAMADA 1 = PLANTAS E OBJETOS
-struct plantInfo {
-    bool colisor;
-    Color cor;
-};
-
-enum PlantType {
-    NADA,
-    MILHO_SEMENTE,
-    MILHO_PEQUENO,
-    MILHO_PRONTO
-};
-
-const plantInfo INFO_DAS_PLANTAS[]{
-    {false, BLACK},
-    {false, LIME},
-    {false, ORANGE},
-    {false, YELLOW}
-};
-
-// PLAYER
-struct Player {
-    int x, y;
-    int dirX, dirY;
-
-    float moveTimer;
-    float speed;
-
-    ItemType itemMao;
-    Color cor;
-};
-
 
 int main() {
     InitWindow(MAP_WIDTH * TILE_SIZE, MAP_HEIGHT * TILE_SIZE, "Stardew Valley do Paraguai");
@@ -98,6 +35,9 @@ int main() {
     player.speed = 0.15f;
     player.itemMao = MAO;
 
+    Texture2D tilesetTexture = LoadTexture("assets/tileset.png");
+    Texture2D playerTexture = LoadTexture("assets/tilesetplayer.png");
+
     printf("SELECIONE A FERRAMENTA: \n 1 - ENXADA\n 2 - REGADOR\n 3 - SEMENTE\n");
     // Loop do jogo
     while (!WindowShouldClose()) {
@@ -110,14 +50,48 @@ int main() {
         int moveX = 0, moveY = 0;
         
         // INPUTS
-        if (IsKeyDown(KEY_W)) { player.dirX = 0; player.dirY = -1; moveY = -1; };
-        if (IsKeyDown(KEY_A)) { player.dirX = -1; player.dirY = 0; moveX = -1; };
-        if (IsKeyDown(KEY_S)) { player.dirX = 0; player.dirY = 1; moveY = 1; };
-        if (IsKeyDown(KEY_D)) { player.dirX = 1; player.dirY = 0; moveX = 1; };
-
-        if (IsKeyPressed(KEY_ONE)) { player.itemMao = ENXADA; printf("ENXADA SELECIONADA!\n"); }
-        if (IsKeyPressed(KEY_TWO)) { player.itemMao = REGADOR; printf("REGADOR SELECIONADO!\n"); }
-        if (IsKeyPressed(KEY_THREE)) { player.itemMao = SEMENTE_MILHO; printf("SEMENTE SELECIONADA!\n"); }
+        if (player.moveTimer <= 0) {
+            if (IsKeyDown(KEY_W)) {
+                if (player.dirY != -1) {
+                    player.dirX = 0;
+                    player.dirY = -1;
+                    player.moveTimer = 0.1f;
+                }
+                else {
+                    moveY = -1;
+                }
+            }
+            else if (IsKeyDown(KEY_A)) {
+                if (player.dirX != -1) {
+                    player.dirX = -1;
+                    player.dirY = 0;
+                    player.moveTimer = 0.1f;
+                }
+                else {
+                    moveX = -1;
+                }
+            }
+            else if (IsKeyDown(KEY_S)) {
+                if (player.dirY != 1) {
+                    player.dirX = 0;
+                    player.dirY = 1;
+                    player.moveTimer = 0.1f;
+                }
+                else {
+                    moveY = 1;
+                }
+            }
+            else if (IsKeyDown(KEY_D)) {
+                if (player.dirX != 1) {
+                    player.dirX = 1;
+                    player.dirY = 0;
+                    player.moveTimer = 0.1f;
+                }
+                else {
+                    moveX = 1;
+                }
+            }
+        }
         
         int alvoX = player.x + player.dirX;
         int alvoY = player.y + player.dirY;
@@ -134,6 +108,20 @@ int main() {
                     player.moveTimer = player.speed;
                 }
             }
+        }
+
+        // Ferramentas
+        if (IsKeyPressed(KEY_ONE)) {
+            printf("ENXADA SELECIONADA!\n");
+            player.itemMao = ENXADA;
+        }
+        else if (IsKeyPressed(KEY_TWO)) {
+            printf("REGADOR SELECIONADO!\n");
+            player.itemMao = REGADOR;
+        }
+        else if (IsKeyPressed(KEY_THREE)) {
+            printf("SEMENTE SELECIONADA!\n");
+            player.itemMao = SEMENTE_MILHO;
         }
 
         if (IsKeyPressed(KEY_SPACE)) {
@@ -173,28 +161,48 @@ int main() {
             for (int y = 0; y < MAP_HEIGHT; y++)
             {
                 for (int x = 0; x < MAP_WIDTH; x++) {
+                    
+
                     int tipo = map[y][x];
                     int planta = plantMap[y][x];
                     
                     int posX = x * TILE_SIZE;
                     int posY = y * TILE_SIZE;
 
-                    Color corTile = INFO_DOS_TILES[tipo].cor;
-                    Color corPlanta = INFO_DAS_PLANTAS[planta].cor;
-                    
-                   
+                    Vector2 posTela = { (float)posX, (float)posY };
 
-                    // Desenhando os tiles
-                    DrawRectangle(posX, posY, TILE_SIZE, TILE_SIZE, corTile);
-                    DrawRectangleLines(posX, posY, TILE_SIZE, TILE_SIZE, DARKGRAY);
+                    Rectangle recorte = {
+                        (float)(tipo * TILE_SIZE),
+                        0.0f,
+                        (float)TILE_SIZE,
+                        (float)TILE_SIZE
+                    };
 
+                    DrawTextureRec(tilesetTexture, recorte, posTela, WHITE);
                     if (planta != NADA) {
                         DrawCircle(posX + TILE_SIZE / 2, posY + TILE_SIZE / 2, 10, YELLOW);
                     }
-
                 }
             }
-            DrawRectangle(player.x * TILE_SIZE, player.y * TILE_SIZE, TILE_SIZE, TILE_SIZE, player.cor);
+
+            int frameIndex = 0;
+            if (player.dirY == -1) frameIndex = 1;
+            if (player.dirX == 1)  frameIndex = 2;
+            if (player.dirX == -1) frameIndex = 3;
+            
+            Rectangle playerRec = {
+                (float)(frameIndex * TILE_SIZE),
+                0.0f,
+                (float)TILE_SIZE,
+                (float)TILE_SIZE
+            };
+            Vector2 playerPos = {
+                (float)(player.x * TILE_SIZE),
+                (float)(player.y * TILE_SIZE)
+            };
+
+            DrawTextureRec(playerTexture, playerRec, playerPos, WHITE);
+
             int cursorX = (player.x + player.dirX) * TILE_SIZE;
             int cursorY = (player.y + player.dirY) * TILE_SIZE;
             DrawRectangleLines(cursorX, cursorY, TILE_SIZE, TILE_SIZE, RED);
@@ -202,6 +210,7 @@ int main() {
     }
 
     // De-Initialization
+    UnloadTexture(tilesetTexture);
     CloseWindow();
 
     return 0;
