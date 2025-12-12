@@ -5,7 +5,7 @@
 #include <iostream>
 
 int main() {
-    InitWindow(MAP_WIDTH * TILE_SIZE, MAP_HEIGHT * TILE_SIZE, "Stardew Valley do Paraguai");
+    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Stardew Valley do Paraguai");
     SetTargetFPS(60);
     
     // Matriz dos dados. O MAPA
@@ -22,10 +22,17 @@ int main() {
         {1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1}
     };
 
-    int plantMap[MAP_HEIGHT][MAP_WIDTH] = { 0 };
+    Plant plantMap[MAP_HEIGHT][MAP_WIDTH];
+    for (int y = 0; y < MAP_HEIGHT; y++){
+        for (int x = 0; x < MAP_WIDTH; x++){
+            plantMap[y][x].type = NADA;
+            plantMap[y][x].age = 0;
+            plantMap[y][x].regada = false;
+        }
+    }
 
     // Inicializando o player
-    Player player;
+    Player player{};
     player.x = 1;
     player.y = 1;
     player.dirX = 0;
@@ -34,14 +41,19 @@ int main() {
     player.moveTimer = 0.0f;
     player.speed = 0.15f;
     player.itemMao = MAO;
+    player.qntSementes = 5;
 
-    Texture2D tilesetTexture = LoadTexture("assets/tileset.png");
-    Texture2D playerTexture = LoadTexture("assets/tilesetplayer.png");
+    const Texture2D tilesetTexture = LoadTexture("assets/tileset.png");
+    const Texture2D playerTexture = LoadTexture("assets/tilesetplayer.png");
 
-    printf("SELECIONE A FERRAMENTA: \n 1 - ENXADA\n 2 - REGADOR\n 3 - SEMENTE\n");
+    Camera2D camera = { 0 };
+    camera.target = { static_cast<float>(player.x), static_cast<float>(player.y) };
+    camera.offset = { SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f };
+    camera.zoom = 2.0f;
+
+    printf("SELECIONE A FERRAMENTA: \n 1 - ENXADA\n 2 - REGADOR\n 3 - SEMENTE\n 0 - MAO\n");
     // Loop do jogo
     while (!WindowShouldClose()) {
-
         // Cooldown do movimento
         if (player.moveTimer > 0) {
             player.moveTimer -= GetFrameTime();
@@ -95,13 +107,11 @@ int main() {
         
         int alvoX = player.x + player.dirX;
         int alvoY = player.y + player.dirY;
-        bool colCheck = (alvoX >= 0 && alvoX < MAP_WIDTH && alvoY >= 0 && alvoY < MAP_HEIGHT);
+        const bool colCheck = (alvoX >= 0 && alvoX < MAP_WIDTH && alvoY >= 0 && alvoY < MAP_HEIGHT);
         if ((moveX != 0 || moveY != 0) && player.moveTimer <= 0) {
             // Sistema de colisão e movimento
             if (colCheck) {
-                int idTile = map[alvoY][alvoX];
-
-                if (INFO_DOS_TILES[idTile].colisor == false) {
+                if (const int idTile = map[alvoY][alvoX]; INFO_DOS_TILES[idTile].colisor == false) {
                     player.x = alvoX;
                     player.y = alvoY;
 
@@ -123,11 +133,15 @@ int main() {
             printf("SEMENTE SELECIONADA!\n");
             player.itemMao = SEMENTE_MILHO;
         }
+        else if (IsKeyPressed(KEY_ZERO)){
+            printf("MAO SELECIONADA!\n");
+            player.itemMao = MAO;
+        }
 
+        // SWITCH DAS FERRAMENTAS
         if (IsKeyPressed(KEY_SPACE)) {
             if (colCheck) {
                 int& tileAlvo = map[alvoY][alvoX];
-                int& plantaAlvo = plantMap[alvoY][alvoX];
                 switch (player.itemMao) {
                 case ENXADA:
                     if (tileAlvo == GRAMA) {
@@ -142,70 +156,121 @@ int main() {
                     }
                     break;
                 case SEMENTE_MILHO:
-                    if (tileAlvo == TERRA_MOLHADA) {
-                        if (plantaAlvo == NADA) {
-                            printf("MILHO PLANTADO\n");
-                            plantaAlvo = MILHO_PRONTO;
-                        }
+                    if (plantMap[alvoY][alvoX].type == NADA && player.qntSementes > 0) {
+                        player.qntSementes--;
+                        printf("MILHO PLANTADO\n");
+                        plantMap[alvoY][alvoX].type = MILHO_SEMENTE;
                     }
                     break;
                 default:
+                    if (plantMap[alvoY][alvoX].type == MILHO_PRONTO){
+                        plantMap[alvoY][alvoX].type = NADA;
+                        player.money += 10;
+                        printf("VOCê GANHOU DINEHRO");
+                    }
                     break;
                 }
             }
         }
 
-        BeginDrawing();
-            ClearBackground(BLACK);
-
-            for (int y = 0; y < MAP_HEIGHT; y++)
-            {
-                for (int x = 0; x < MAP_WIDTH; x++) {
-                    
-
-                    int tipo = map[y][x];
-                    int planta = plantMap[y][x];
-                    
-                    int posX = x * TILE_SIZE;
-                    int posY = y * TILE_SIZE;
-
-                    Vector2 posTela = { (float)posX, (float)posY };
-
-                    Rectangle recorte = {
-                        (float)(tipo * TILE_SIZE),
-                        0.0f,
-                        (float)TILE_SIZE,
-                        (float)TILE_SIZE
-                    };
-
-                    DrawTextureRec(tilesetTexture, recorte, posTela, WHITE);
-                    if (planta != NADA) {
-                        DrawCircle(posX + TILE_SIZE / 2, posY + TILE_SIZE / 2, 10, YELLOW);
+        // Passar o dia
+        if (IsKeyPressed(KEY_ENTER)){
+            printf("UM NOVO DIA CHEGOU!");
+            for (int y = 0; y < MAP_HEIGHT; y++){
+                for (int x = 0; x < MAP_WIDTH; x++){
+                    Plant& p = plantMap[y][x];
+                    int& solo = map[y][x];
+                    if (p.type != NADA && solo == TERRA_MOLHADA){
+                        p.age++;
+                        if (p.type == MILHO_SEMENTE && p.age >= 1){
+                            p.type = MILHO_PEQUENO;
+                        }else if (p.type == MILHO_PEQUENO && p.age >= 3){
+                            p.type = MILHO_PRONTO;
+                        }
+                    }
+                    if (solo == TERRA_MOLHADA){
+                        solo = TERRA;
                     }
                 }
             }
+        }
 
-            int frameIndex = 0;
-            if (player.dirY == -1) frameIndex = 1;
-            if (player.dirX == 1)  frameIndex = 2;
-            if (player.dirX == -1) frameIndex = 3;
-            
-            Rectangle playerRec = {
-                (float)(frameIndex * TILE_SIZE),
-                0.0f,
-                (float)TILE_SIZE,
-                (float)TILE_SIZE
-            };
-            Vector2 playerPos = {
-                (float)(player.x * TILE_SIZE),
-                (float)(player.y * TILE_SIZE)
-            };
+        // COMPRAR SEMENTES
+        if (IsKeyPressed(KEY_B)){
+            player.money -= 50;
+            player.qntSementes += 5;
+        }
 
-            DrawTextureRec(playerTexture, playerRec, playerPos, WHITE);
+        camera.target = { static_cast<float>(player.x * TILE_SIZE + TILE_SIZE/2), static_cast<float>(player.y * TILE_SIZE + TILE_SIZE/2)};
 
-            int cursorX = (player.x + player.dirX) * TILE_SIZE;
-            int cursorY = (player.y + player.dirY) * TILE_SIZE;
-            DrawRectangleLines(cursorX, cursorY, TILE_SIZE, TILE_SIZE, RED);
+        BeginDrawing();
+            ClearBackground(BLACK);
+            BeginMode2D(camera);
+                for (int y = 0; y < MAP_HEIGHT; y++)
+                {
+                    for (int x = 0; x < MAP_WIDTH; x++) {
+                        const int tipo = map[y][x];
+
+                        const int posX = x * TILE_SIZE;
+                        const int posY = y * TILE_SIZE;
+
+                        const Vector2 posTela = { static_cast<float>(posX), static_cast<float>(posY) };
+
+                        const Rectangle recorte = {
+                            static_cast<float>(tipo * TILE_SIZE),
+                            0.0f,
+                            static_cast<float>(TILE_SIZE),
+                            static_cast<float>(TILE_SIZE)
+                        };
+
+                        DrawTextureRec(tilesetTexture, recorte, posTela, WHITE);
+
+                        // DESENHANDO AS PLANTAS
+                        if (int tipoPlanta = plantMap[y][x].type; tipoPlanta != NADA) {
+                            const Rectangle planta = {
+                                static_cast<float>((tipoPlanta-1) * TILE_SIZE),
+                                48.0f,
+                                static_cast<float>(TILE_SIZE),
+                                static_cast<float>(TILE_SIZE)
+                            };
+                            DrawTextureRec(tilesetTexture, planta, posTela, WHITE);
+                            //DrawCircle(posX + TILE_SIZE / 2, posY + TILE_SIZE / 2, 10, INFO_DAS_PLANTAS[tipoPlanta].cor);
+                        }
+                    }
+                }
+
+                int frameIndex = 0;
+                if (player.dirY == -1) frameIndex = 1;
+                if (player.dirX == 1)  frameIndex = 2;
+                if (player.dirX == -1) frameIndex = 3;
+
+                const Rectangle playerRec = {
+                    static_cast<float>(frameIndex * TILE_SIZE),
+                    0.0f,
+                    static_cast<float>(TILE_SIZE),
+                    static_cast<float>(TILE_SIZE)
+                };
+                const Vector2 playerPos = {
+                    static_cast<float>(player.x * TILE_SIZE),
+                    static_cast<float>(player.y * TILE_SIZE)
+                };
+
+                DrawTextureRec(playerTexture, playerRec, playerPos, WHITE);
+
+                const int cursorX = (player.x + player.dirX) * TILE_SIZE;
+                const int cursorY = (player.y + player.dirY) * TILE_SIZE;
+                DrawRectangleLines(cursorX, cursorY, TILE_SIZE, TILE_SIZE, RED);
+            EndMode2D();
+
+            // UI
+            DrawText(TextFormat("$ %d", player.money), 10, 10, 20, GREEN);
+            DrawText(TextFormat("Sementes Restantes: %d", player.qntSementes), 10, 30, 20, ORANGE);
+
+            const char* nomeFerramenta = "Mão";
+            if (player.itemMao == ENXADA) nomeFerramenta = "Enxada";
+            if (player.itemMao == REGADOR) nomeFerramenta = "Regador";
+            if (player.itemMao == SEMENTE_MILHO) nomeFerramenta = "Semente";
+            DrawText(nomeFerramenta, SCREEN_WIDTH / 2, SCREEN_HEIGHT - 30, 20, YELLOW);
         EndDrawing();
     }
 

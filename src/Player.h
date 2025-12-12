@@ -7,6 +7,10 @@ struct Player {
     int x, y;
     int dirX, dirY;
 
+    // ECONOMY
+    int money;
+    int qntSementes;
+
     float moveTimer;
     float speed;
 
