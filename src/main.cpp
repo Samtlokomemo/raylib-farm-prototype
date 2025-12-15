@@ -7,7 +7,9 @@
 int main() {
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Stardew Valley do Paraguai");
     SetTargetFPS(60);
-    
+
+    InitAudioDevice();
+
     // Matriz dos dados. O MAPA
     // 0 = Terra; 1 = Grama; 2 = ÁGUA
     int map[MAP_HEIGHT][MAP_WIDTH]{
@@ -31,7 +33,8 @@ int main() {
         }
     }
 
-    // Inicializando o player
+    // PLAYER CONFIG
+
     Player player{};
     player.x = 1;
     player.y = 1;
@@ -43,8 +46,14 @@ int main() {
     player.itemMao = MAO;
     player.qntSementes = 5;
 
+    // TEXTURAS
+
     const Texture2D tilesetTexture = LoadTexture("assets/tileset.png");
     const Texture2D playerTexture = LoadTexture("assets/tilesetplayer.png");
+
+    const Sound digSfx = LoadSound("assets/sfx-dig.wav");
+    const Sound waterupSfx = LoadSound("assets/sfx-waterup.wav");
+    const Sound plantSfx = LoadSound("assets/sfx-plant.wav");
 
     Camera2D camera = { 0 };
     camera.target = { static_cast<float>(player.x), static_cast<float>(player.y) };
@@ -60,7 +69,9 @@ int main() {
         }
 
         int moveX = 0, moveY = 0;
-        
+
+        const Vector2 cursor = {static_cast<float>((player.x + player.dirX) * TILE_SIZE), static_cast<float>((player.y + player.dirY) * TILE_SIZE)};
+
         // INPUTS
         if (player.moveTimer <= 0) {
             if (IsKeyDown(KEY_W)) {
@@ -145,18 +156,21 @@ int main() {
                 switch (player.itemMao) {
                 case ENXADA:
                     if (tileAlvo == GRAMA) {
+                        PlaySound(digSfx);
                         printf("TERRA ARADA!\n");
                         tileAlvo = TERRA;
                     }
                     break;
                 case REGADOR:
                     if (tileAlvo == TERRA) {
+                        PlaySound(waterupSfx);
                         printf("TERRA REGADA!\n");
                         tileAlvo = TERRA_MOLHADA;
                     }
                     break;
                 case SEMENTE_MILHO:
-                    if (plantMap[alvoY][alvoX].type == NADA && player.qntSementes > 0) {
+                    if (plantMap[alvoY][alvoX].type == NADA && player.qntSementes > 0 && (tileAlvo == TERRA || tileAlvo == TERRA_MOLHADA)) {
+                        PlaySound(plantSfx);
                         player.qntSementes--;
                         printf("MILHO PLANTADO\n");
                         plantMap[alvoY][alvoX].type = MILHO_SEMENTE;
@@ -196,7 +210,8 @@ int main() {
         }
 
         // COMPRAR SEMENTES
-        if (IsKeyPressed(KEY_B)){
+        // TODO ARRUMAR AS SEMENTES E A COMPRA DEPOIS PARA O PREÇO SAIR AUTOMATICAMENTE
+        if (IsKeyPressed(KEY_B) && player.money > 50){
             player.money -= 50;
             player.qntSementes += 5;
         }
@@ -257,9 +272,7 @@ int main() {
 
                 DrawTextureRec(playerTexture, playerRec, playerPos, WHITE);
 
-                const int cursorX = (player.x + player.dirX) * TILE_SIZE;
-                const int cursorY = (player.y + player.dirY) * TILE_SIZE;
-                DrawRectangleLines(cursorX, cursorY, TILE_SIZE, TILE_SIZE, RED);
+                DrawRectangleLines(static_cast<int>(cursor.x), static_cast<int>(cursor.y), TILE_SIZE, TILE_SIZE, RED);
             EndMode2D();
 
             // UI
@@ -275,7 +288,11 @@ int main() {
     }
 
     // De-Initialization
+    UnloadSound(digSfx);
+    UnloadSound(plantSfx);
+    UnloadSound(waterupSfx);
     UnloadTexture(tilesetTexture);
+    CloseAudioDevice();
     CloseWindow();
 
     return 0;
