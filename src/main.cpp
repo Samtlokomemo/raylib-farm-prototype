@@ -1,33 +1,10 @@
 #include "raylib.h"
 #include "Globals.h"
 #include "Player.h"
+#include "SaveSystem.h"
 
 #include <fstream>
 #include <iostream>
-
-void SaveGame(const Player& player, const int* sMap, const Plant* sPlantMap){
-    FILE* saveFile = fopen("save.dat", "wb");
-    if (saveFile == nullptr) printf("O JOGO NÃO CONSEGUIU SALVAR");
-
-    fwrite(&player , sizeof(Player), 1, saveFile);
-    fwrite(sMap, sizeof(int) * MAP_WIDTH * MAP_HEIGHT, 1, saveFile);
-    fwrite(sPlantMap, sizeof(Plant) * MAP_WIDTH * MAP_HEIGHT, 1, saveFile);
-
-    fclose(saveFile);
-    printf("JOGO SALVO COM SUCESSO");
-}
-
-void LoadGame(Player& sPlayer, int* sMap, Plant* sPlantMap){
-    FILE* saveFile = fopen("save.dat", "rb");
-    if (saveFile == nullptr) printf("O JOGO NÃO CONSEGUIU SALVAR");
-
-    fread(&sPlayer, sizeof(Player), 1, saveFile);
-    fread(sMap, sizeof(int) * MAP_WIDTH * MAP_HEIGHT, 1, saveFile);
-    fread(sPlantMap, sizeof(Plant) * MAP_WIDTH * MAP_HEIGHT, 1, saveFile);
-
-    fclose(saveFile);
-    printf("JOGO CARREGADO COM SUCESSO");
-}
 
 int main() {
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Stardew Valley do Paraguai");
@@ -68,6 +45,11 @@ int main() {
     player.speed = 0.15f;
     player.itemMao = MAO;
     player.qntSementes = 5;
+
+    // SHOP CONFIG
+    const int shopX = 4;
+    const int shopY = 0;
+    bool showShopText = false;
 
     // TEXTURAS
 
@@ -240,80 +222,17 @@ int main() {
 
         // COMPRAR SEMENTES
         // TODO ARRUMAR AS SEMENTES E A COMPRA DEPOIS PARA O PREÇO SAIR AUTOMATICAMENTE
-        if (IsKeyPressed(KEY_B) && player.money > 50){
-            player.money -= 50;
-            player.qntSementes += 5;
+        if (alvoX == shopX && alvoY == shopY){
+            showShopText = true;
+            if (IsKeyPressed(KEY_B) && player.money >= 50){
+                player.money -= 50;
+                player.qntSementes += 5;
+            }
+        }else{
+            showShopText = false;
         }
 
         camera.target = { static_cast<float>(player.x * TILE_SIZE + TILE_SIZE/2), static_cast<float>(player.y * TILE_SIZE + TILE_SIZE/2)};
-
-        BeginDrawing();
-            ClearBackground(BLACK);
-            BeginMode2D(camera);
-                for (int y = 0; y < MAP_HEIGHT; y++)
-                {
-                    for (int x = 0; x < MAP_WIDTH; x++) {
-                        const int tipo = map[y][x];
-
-                        const int posX = x * TILE_SIZE;
-                        const int posY = y * TILE_SIZE;
-
-                        const Vector2 posTela = { static_cast<float>(posX), static_cast<float>(posY) };
-
-                        const Rectangle recorte = {
-                            static_cast<float>(tipo * TILE_SIZE),
-                            0.0f,
-                            static_cast<float>(TILE_SIZE),
-                            static_cast<float>(TILE_SIZE)
-                        };
-
-                        DrawTextureRec(tilesetTexture, recorte, posTela, WHITE);
-
-                        // DESENHANDO AS PLANTAS
-                        if (int tipoPlanta = plantMap[y][x].type; tipoPlanta != NADA) {
-                            const Rectangle planta = {
-                                static_cast<float>((tipoPlanta-1) * TILE_SIZE),
-                                48.0f,
-                                static_cast<float>(TILE_SIZE),
-                                static_cast<float>(TILE_SIZE)
-                            };
-                            DrawTextureRec(tilesetTexture, planta, posTela, WHITE);
-                            //DrawCircle(posX + TILE_SIZE / 2, posY + TILE_SIZE / 2, 10, INFO_DAS_PLANTAS[tipoPlanta].cor);
-                        }
-                    }
-                }
-
-                int frameIndex = 0;
-                if (player.dirY == -1) frameIndex = 1;
-                if (player.dirX == 1)  frameIndex = 2;
-                if (player.dirX == -1) frameIndex = 3;
-
-                const Rectangle playerRec = {
-                    static_cast<float>(frameIndex * TILE_SIZE),
-                    0.0f,
-                    static_cast<float>(TILE_SIZE),
-                    static_cast<float>(TILE_SIZE)
-                };
-                const Vector2 playerPos = {
-                    static_cast<float>(player.x * TILE_SIZE),
-                    static_cast<float>(player.y * TILE_SIZE)
-                };
-
-                DrawTextureRec(playerTexture, playerRec, playerPos, WHITE);
-
-                DrawRectangleLines(static_cast<int>(cursor.x), static_cast<int>(cursor.y), TILE_SIZE, TILE_SIZE, RED);
-            EndMode2D();
-
-            // UI
-            DrawText(TextFormat("$ %d", player.money), 10, 10, 20, GREEN);
-            DrawText(TextFormat("Sementes Restantes: %d", player.qntSementes), 10, 30, 20, ORANGE);
-
-            const char* nomeFerramenta = "Mão";
-            if (player.itemMao == ENXADA) nomeFerramenta = "Enxada";
-            if (player.itemMao == REGADOR) nomeFerramenta = "Regador";
-            if (player.itemMao == SEMENTE_MILHO) nomeFerramenta = "Semente";
-            DrawText(nomeFerramenta, SCREEN_WIDTH / 2, SCREEN_HEIGHT - 30, 20, YELLOW);
-        EndDrawing();
     }
 
     // De-Initialization
