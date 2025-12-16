@@ -2,14 +2,38 @@
 #include "Globals.h"
 #include "Player.h"
 
+#include <fstream>
 #include <iostream>
+
+void SaveGame(const Player& player, const int* sMap, const Plant* sPlantMap){
+    FILE* saveFile = fopen("save.dat", "wb");
+    if (saveFile == nullptr) printf("O JOGO NÃO CONSEGUIU SALVAR");
+
+    fwrite(&player , sizeof(Player), 1, saveFile);
+    fwrite(sMap, sizeof(int) * MAP_WIDTH * MAP_HEIGHT, 1, saveFile);
+    fwrite(sPlantMap, sizeof(Plant) * MAP_WIDTH * MAP_HEIGHT, 1, saveFile);
+
+    fclose(saveFile);
+    printf("JOGO SALVO COM SUCESSO");
+}
+
+void LoadGame(Player& sPlayer, int* sMap, Plant* sPlantMap){
+    FILE* saveFile = fopen("save.dat", "rb");
+    if (saveFile == nullptr) printf("O JOGO NÃO CONSEGUIU SALVAR");
+
+    fread(&sPlayer, sizeof(Player), 1, saveFile);
+    fread(sMap, sizeof(int) * MAP_WIDTH * MAP_HEIGHT, 1, saveFile);
+    fread(sPlantMap, sizeof(Plant) * MAP_WIDTH * MAP_HEIGHT, 1, saveFile);
+
+    fclose(saveFile);
+    printf("JOGO CARREGADO COM SUCESSO");
+}
 
 int main() {
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Stardew Valley do Paraguai");
     SetTargetFPS(60);
 
     InitAudioDevice();
-
     // Matriz dos dados. O MAPA
     // 0 = Terra; 1 = Grama; 2 = ÁGUA
     int map[MAP_HEIGHT][MAP_WIDTH]{
@@ -34,7 +58,6 @@ int main() {
     }
 
     // PLAYER CONFIG
-
     Player player{};
     player.x = 1;
     player.y = 1;
@@ -61,6 +84,7 @@ int main() {
     camera.zoom = 2.0f;
 
     printf("SELECIONE A FERRAMENTA: \n 1 - ENXADA\n 2 - REGADOR\n 3 - SEMENTE\n 0 - MAO\n");
+    LoadGame(player, *map, *plantMap);
     // Loop do jogo
     while (!WindowShouldClose()) {
         // Cooldown do movimento
@@ -207,6 +231,11 @@ int main() {
                     }
                 }
             }
+        }
+
+        if (IsKeyPressed(KEY_F5)){
+            SaveGame(player, *map, *plantMap);
+            printf("JOGO SALVO");
         }
 
         // COMPRAR SEMENTES
