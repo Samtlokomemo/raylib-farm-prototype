@@ -1,11 +1,12 @@
 #pragma once
 #include "raylib.h"
 
+
 // CONSTANTES
-const int TILE_SIZE = 48;
-const int MAP_WIDTH = 11, MAP_HEIGHT = 9;
-const int SCREEN_WIDTH = TILE_SIZE * MAP_WIDTH;
-const int SCREEN_HEIGHT = TILE_SIZE * MAP_HEIGHT;
+constexpr int TILE_SIZE = 48;
+constexpr int MAP_WIDTH = 11, MAP_HEIGHT = 9;
+constexpr int SCREEN_WIDTH = TILE_SIZE * MAP_WIDTH;
+constexpr int SCREEN_HEIGHT = TILE_SIZE * MAP_HEIGHT;
 
 // Itens do jogador
 enum ItemType {
@@ -31,7 +32,7 @@ enum TILES {
 };
 
 // DATABASE dos Tiles
-static const tileInfo INFO_DOS_TILES[]{
+static constexpr tileInfo INFO_DOS_TILES[]{
     {false, BROWN},
     {false, GREEN},
     {true, DARKBLUE},
@@ -57,7 +58,7 @@ struct Plant{
     bool regada;
 };
 
-static const plantInfo INFO_DAS_PLANTAS[]{
+static constexpr plantInfo INFO_DAS_PLANTAS[]{
     {false, BLACK},
     {false, LIME},
     {false, ORANGE},
