@@ -4,7 +4,7 @@
 #include "Globals.h"
 
 struct GameState{
-    Player player{};
+    Player player;
     int map[MAP_HEIGHT][MAP_WIDTH]{};
     Plant plantMap[MAP_HEIGHT][MAP_WIDTH]{};
 

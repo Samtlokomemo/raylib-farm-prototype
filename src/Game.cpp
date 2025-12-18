@@ -37,9 +37,13 @@ void InitGame(GameState& game){
     game.player.dirX = 0;
     game.player.dirY = 0;
     game.player.cor = MAROON;
+    // PLAYER MOVIMENTAÇÃO
     game.player.moveTimer = 0.0f;
     game.player.speed = 0.15f;
+    game.player.isMoving = false;
+    // PLAYER INVENTÁRIO
     game.player.itemMao = MAO;
+    game.player.money = 0;
     game.player.qntSementes = 5;
 
     // SPRITES
@@ -62,167 +66,47 @@ void InitGame(GameState& game){
 }
 
 void UpdateGame(GameState& game){
-        // Cooldown do movimento
-        if (game.player.moveTimer > 0) {
-            game.player.moveTimer -= GetFrameTime();
-        }
+    game.cursor = {static_cast<float>((game.player.x + game.player.dirX) * TILE_SIZE), static_cast<float>((game.player.y + game.player.dirY) * TILE_SIZE)};
 
-        int moveX = 0, moveY = 0;
+    if (IsKeyPressed(KEY_F5)){
+        SaveGame(game);
+        printf("JOGO SALVO");
+    }
 
-        game.cursor = {static_cast<float>((game.player.x + game.player.dirX) * TILE_SIZE), static_cast<float>((game.player.y + game.player.dirY) * TILE_SIZE)};
+    UpdatePlayer(game.player, game, GetFrameTime());
 
-        // INPUTS
-        if (game.player.moveTimer <= 0) {
-            if (IsKeyDown(KEY_W)) {
-                if (game.player.dirY != -1) {
-                    game.player.dirX = 0;
-                    game.player.dirY = -1;
-                    game.player.moveTimer = 0.1f;
-                }
-                else {
-                    moveY = -1;
-                }
-            }
-            else if (IsKeyDown(KEY_A)) {
-                if (game.player.dirX != -1) {
-                    game.player.dirX = -1;
-                    game.player.dirY = 0;
-                    game.player.moveTimer = 0.1f;
-                }
-                else {
-                    moveX = -1;
-                }
-            }
-            else if (IsKeyDown(KEY_S)) {
-                if (game.player.dirY != 1) {
-                    game.player.dirX = 0;
-                    game.player.dirY = 1;
-                    game.player.moveTimer = 0.1f;
-                }
-                else {
-                    moveY = 1;
-                }
-            }
-            else if (IsKeyDown(KEY_D)) {
-                if (game.player.dirX != 1) {
-                    game.player.dirX = 1;
-                    game.player.dirY = 0;
-                    game.player.moveTimer = 0.1f;
-                }
-                else {
-                    moveX = 1;
-                }
-            }
-        }
-
-        int alvoX = game.player.x + game.player.dirX;
-        int alvoY = game.player.y + game.player.dirY;
-        const bool colCheck = (alvoX >= 0 && alvoX < MAP_WIDTH && alvoY >= 0 && alvoY < MAP_HEIGHT);
-        if ((moveX != 0 || moveY != 0) && game.player.moveTimer <= 0) {
-            // Sistema de colisão e movimento
-            if (colCheck) {
-                if (const int idTile = game.map[alvoY][alvoX]; INFO_DOS_TILES[idTile].colisor == false) {
-                    game.player.x = alvoX;
-                    game.player.y = alvoY;
-
-                    game.player.moveTimer = game.player.speed;
-                }
-            }
-        }
-
-        // Ferramentas
-        if (IsKeyPressed(KEY_ONE)) {
-            printf("ENXADA SELECIONADA!\n");
-            game.player.itemMao = ENXADA;
-        }
-        else if (IsKeyPressed(KEY_TWO)) {
-            printf("REGADOR SELECIONADO!\n");
-            game.player.itemMao = REGADOR;
-        }
-        else if (IsKeyPressed(KEY_THREE)) {
-            printf("SEMENTE SELECIONADA!\n");
-            game.player.itemMao = SEMENTE_MILHO;
-        }
-        else if (IsKeyPressed(KEY_ZERO)){
-            printf("MAO SELECIONADA!\n");
-            game.player.itemMao = MAO;
-        }
-
-        // SWITCH DAS FERRAMENTAS
-        if (IsKeyPressed(KEY_SPACE)) {
-            if (colCheck) {
-                int& tileAlvo = game.map[alvoY][alvoX];
-                switch (game.player.itemMao) {
-                case ENXADA:
-                    if (tileAlvo == GRAMA) {
-                        PlaySound(game.digSfx);
-                        printf("TERRA ARADA!\n");
-                        tileAlvo = TERRA;
-                    }
-                    break;
-                case REGADOR:
-                    if (tileAlvo == TERRA) {
-                        PlaySound(game.waterupSfx);
-                        printf("TERRA REGADA!\n");
-                        tileAlvo = TERRA_MOLHADA;
-                    }
-                    break;
-                case SEMENTE_MILHO:
-                    if (game.plantMap[alvoY][alvoX].type == NADA && game.player.qntSementes > 0 && (tileAlvo == TERRA || tileAlvo == TERRA_MOLHADA)) {
-                        PlaySound(game.plantSfx);
-                        game.player.qntSementes--;
-                        printf("MILHO PLANTADO\n");
-                        game.plantMap[alvoY][alvoX].type = MILHO_SEMENTE;
-                    }
-                    break;
-                default:
-                    if (game.plantMap[alvoY][alvoX].type == MILHO_PRONTO){
-                        game.plantMap[alvoY][alvoX].type = NADA;
-                        game.player.money += 10;
-                        printf("VOCê GANHOU DINEHRO");
-                    }
-                    break;
-                }
-            }
-        }
-
-        // Passar o dia
-        if (IsKeyPressed(KEY_ENTER)){
-            printf("UM NOVO DIA CHEGOU!");
-            for (int y = 0; y < MAP_HEIGHT; y++){
-                for (int x = 0; x < MAP_WIDTH; x++){
-                    Plant& p = game.plantMap[y][x];
-                    int& solo = game.map[y][x];
-                    if (p.type != NADA && solo == TERRA_MOLHADA){
-                        p.age++;
-                        if (p.type == MILHO_SEMENTE && p.age >= 1){
-                            p.type = MILHO_PEQUENO;
-                        }else if (p.type == MILHO_PEQUENO && p.age >= 3){
-                            p.type = MILHO_PRONTO;
-                        }
-                    }
-                    if (solo == TERRA_MOLHADA){
-                        solo = TERRA;
+    // Passar o dia
+    if (IsKeyPressed(KEY_ENTER)){
+        printf("UM NOVO DIA CHEGOU!");
+        for (int y = 0; y < MAP_HEIGHT; y++){
+            for (int x = 0; x < MAP_WIDTH; x++){
+                Plant& p = game.plantMap[y][x];
+                int& solo = game.map[y][x];
+                if (p.type != NADA && solo == TERRA_MOLHADA){
+                    p.age++;
+                    if (p.type == MILHO_SEMENTE && p.age >= 1){
+                        p.type = MILHO_PEQUENO;
+                    }else if (p.type == MILHO_PEQUENO && p.age >= 3){
+                        p.type = MILHO_PRONTO;
                     }
                 }
+                if (solo == TERRA_MOLHADA){
+                    solo = TERRA;
+                }
             }
         }
+    }
 
-        if (IsKeyPressed(KEY_F5)){
-            SaveGame(game);
-            printf("JOGO SALVO");
+    // COMPRAR SEMENTES
+    // TODO ARRUMAR AS SEMENTES E A COMPRA DEPOIS PARA O PREÇO SAIR AUTOMATICAMENTE
+    if (game.cursor.x == game.shopX && game.cursor.y == game.shopY){
+        if (IsKeyPressed(KEY_B) && game.player.money >= 50){
+            game.player.money -= 50;
+            game.player.qntSementes += 5;
         }
+    }
 
-        // COMPRAR SEMENTES
-        // TODO ARRUMAR AS SEMENTES E A COMPRA DEPOIS PARA O PREÇO SAIR AUTOMATICAMENTE
-        if (alvoX == game.shopX && alvoY == game.shopY){
-            if (IsKeyPressed(KEY_B) && game.player.money >= 50){
-                game.player.money -= 50;
-                game.player.qntSementes += 5;
-            }
-        }
-
-        game.camera.target = { static_cast<float>(game.player.x * TILE_SIZE), static_cast<float>(game.player.y * TILE_SIZE )};
+    game.camera.target = { static_cast<float>(game.player.x * TILE_SIZE), static_cast<float>(game.player.y * TILE_SIZE )};
 }
 
 void DrawGame(const GameState& game){
@@ -262,23 +146,7 @@ void DrawGame(const GameState& game){
                 }
 
                 // PLAYER RENDER
-                int frameIndex = 0;
-                if (game.player.dirY == -1) frameIndex = 1;
-                if (game.player.dirX == 1)  frameIndex = 2;
-                if (game.player.dirX == -1) frameIndex = 3;
-
-                const Rectangle playerRec = {
-                    static_cast<float>(frameIndex * TILE_SIZE),
-                    0.0f,
-                    static_cast<float>(TILE_SIZE),
-                    static_cast<float>(TILE_SIZE)
-                };
-                const Vector2 playerPos = {
-                    static_cast<float>(game.player.x * TILE_SIZE),
-                    static_cast<float>(game.player.y * TILE_SIZE)
-                };
-
-                DrawTextureRec(game.playerTexture, playerRec, playerPos, WHITE);
+                DrawPlayer(game.player, game.playerTexture);
                 DrawRectangleLines(static_cast<int>(game.cursor.x), static_cast<int>(game.cursor.y), TILE_SIZE, TILE_SIZE, RED);
 
                 // LOJA RENDER

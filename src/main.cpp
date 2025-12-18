@@ -5,7 +5,7 @@ int main() {
     InitAudioDevice();
     SetTargetFPS(60);
 
-    GameState game;
+    GameState game{};
     InitGame(game);
     // Loop do jogo
     while (!WindowShouldClose()) {

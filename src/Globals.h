@@ -1,7 +1,14 @@
 #pragma once
 #include "raylib.h"
 
+// VERSÃO DO SAVE
+constexpr int SAVE_VER = 2;
 
+// GAME STATE MACHINE
+enum GameScreen{
+    MENU,
+    GAMEPLAY
+};
 // CONSTANTES
 constexpr int TILE_SIZE = 48;
 constexpr int MAP_WIDTH = 11, MAP_HEIGHT = 9;

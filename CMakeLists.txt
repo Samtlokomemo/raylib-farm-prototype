@@ -19,7 +19,10 @@ FetchContent_MakeAvailable(raylib)
 add_executable(${PROJECT_NAME} src/main.cpp
         src/SaveSystem.h
         src/Game.h
-        src/Game.cpp)
+        src/Game.cpp
+        src/Player.cpp
+        src/TitleScreen.cpp
+        src/TitleScreen.h)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE raylib)
 
